@@ -870,10 +870,6 @@
             background: linear-gradient(135deg, var(--warning) 0%, #e0a800 100%);
         }
         
-        .notification.info {
-            background: linear-gradient(135deg, var(--info) 0%, #138496 100%);
-        }
-        
         @keyframes slideInRight {
             from {
                 transform: translateX(100%);
@@ -894,43 +890,6 @@
                 transform: translateX(100%);
                 opacity: 0;
             }
-        }
-        
-        /* ==================== CONNECTION STATUS ==================== */
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            background-color: rgba(40, 167, 69, 0.15);
-            color: #155724;
-            border: 1px solid rgba(40, 167, 69, 0.3);
-        }
-        
-        .connection-status.offline {
-            background-color: rgba(220, 53, 69, 0.15);
-            color: #721c24;
-            border: 1px solid rgba(220, 53, 69, 0.3);
-        }
-        
-        .connection-status .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #28a745;
-            animation: blink 2s infinite;
-        }
-        
-        .connection-status.offline .status-dot {
-            background-color: #dc3545;
-            animation: none;
-        }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
         }
         
         /* ==================== RESPONSIVE ==================== */
@@ -1064,6 +1023,25 @@
             }
         }
         
+        /* ==================== UTILITY CLASSES ==================== */
+        .mobile-only {
+            display: none;
+        }
+        
+        .desktop-only {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-only {
+                display: block;
+            }
+            
+            .desktop-only {
+                display: none;
+            }
+        }
+        
         /* ==================== SCROLLBAR ==================== */
         ::-webkit-scrollbar {
             width: 6px;
@@ -1144,12 +1122,8 @@
                                 <div style="font-size: 13px; opacity: 0.8;">PANGS!T Manager</div>
                             </div>
                         </div>
-                        <div class="connection-status" id="connectionStatus">
-                            <div class="status-dot"></div>
-                            <span id="statusText">Online</span>
-                        </div>
                         <button class="logout-btn" id="logoutBtn">
-                            <i class="fas fa-sign-out-alt"></i> Keluar
+                            <i class="fas fa-sign-out-alt"></i> <span class="desktop-only">Keluar</span>
                         </button>
                     </div>
                 </div>
@@ -1165,10 +1139,7 @@
                         <i class="fas fa-shopping-cart"></i> Manajemen Pesanan
                         <span class="live-badge"><i class="fas fa-circle"></i> LIVE</span>
                     </h1>
-                    <p style="font-size: 14px;">
-                        <span id="lastUpdateTime">Mengambil data...</span> 
-                        <span id="deviceInfo" style="font-size: 12px; color: var(--gray);"></span>
-                    </p>
+                    <p style="font-size: 14px;">Pesanan baru akan muncul otomatis dalam 3 detik</p>
                 </div>
                 
                 <!-- Stats -->
@@ -1223,19 +1194,19 @@
                     
                     <div class="filter-controls">
                         <button class="filter-btn active" data-status="all">
-                            <i class="fas fa-list"></i> Semua
+                            <i class="fas fa-list"></i> <span class="desktop-only">Semua</span>
                         </button>
                         <button class="filter-btn" data-status="pending">
-                            <i class="fas fa-clock"></i> Menunggu
+                            <i class="fas fa-clock"></i> <span class="desktop-only">Menunggu</span>
                         </button>
                         <button class="filter-btn" data-status="processing">
-                            <i class="fas fa-truck"></i> Diproses
+                            <i class="fas fa-truck"></i> <span class="desktop-only">Diproses</span>
                         </button>
                         <button class="filter-btn" data-status="completed">
-                            <i class="fas fa-check-circle"></i> Selesai
+                            <i class="fas fa-check-circle"></i> <span class="desktop-only">Selesai</span>
                         </button>
                         <button class="filter-btn" data-status="cancelled">
-                            <i class="fas fa-times-circle"></i> Dibatalkan
+                            <i class="fas fa-times-circle"></i> <span class="desktop-only">Dibatalkan</span>
                         </button>
                     </div>
                 </div>
@@ -1244,12 +1215,9 @@
                 <div class="orders-table-container">
                     <div class="table-header">
                         <h3><i class="fas fa-table"></i> Daftar Pesanan</h3>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 13px; color: var(--gray);" id="orderCount">0 pesanan</span>
-                            <button class="refresh-btn" id="refreshBtn">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
+                        <button class="refresh-btn" id="refreshBtn">
+                            <i class="fas fa-sync-alt"></i> <span class="desktop-only">Refresh</span>
+                        </button>
                     </div>
                     
                     <table class="orders-table">
@@ -1319,9 +1287,8 @@
         
         const STORAGE_KEYS = {
             ORDERS: 'pangsit_admin_orders',
-            NEW_ORDER_FLAG: 'pangsit_new_order',
-            LAST_CHECK: 'pangsit_last_order_time',
-            SYNC_VERSION: 'pangsit_sync_version'
+            NEW_ORDER_FLAG: 'pangsit_new_order_flag',
+            LAST_CHECK: 'pangsit_admin_last_check'
         };
         
         // ==================== VARIABEL GLOBAL ====================
@@ -1330,11 +1297,8 @@
         let currentFilter = 'all';
         let currentSearch = '';
         let monitoringInterval = null;
-        let syncInterval = null;
         let currentOrderId = null;
         let isAdminPageVisible = false;
-        let lastSyncTime = 0;
-        let syncVersion = 0;
         
         // ==================== FUNGSI UTAMA ====================
         
@@ -1354,7 +1318,7 @@
             try {
                 const date = new Date(dateString);
                 if (isNaN(date.getTime())) {
-                    return dateString;
+                    return dateString; // Return as is if not valid date
                 }
                 return date.toLocaleDateString('id-ID', {
                     day: 'numeric',
@@ -1368,66 +1332,6 @@
             }
         }
         
-        // Format waktu lalu
-        function timeAgo(timestamp) {
-            const now = Date.now();
-            const diff = now - timestamp;
-            
-            const minute = 60 * 1000;
-            const hour = 60 * minute;
-            const day = 24 * hour;
-            
-            if (diff < minute) return 'Baru saja';
-            if (diff < hour) return `${Math.floor(diff / minute)} menit lalu`;
-            if (diff < day) return `${Math.floor(diff / hour)} jam lalu`;
-            return `${Math.floor(diff / day)} hari lalu`;
-        }
-        
-        // Deteksi perangkat
-        function detectDevice() {
-            const ua = navigator.userAgent;
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
-                return '📱 Mobile';
-            } else if (/Tablet|iPad/i.test(ua)) {
-                return '📟 Tablet';
-            } else {
-                return '💻 Desktop';
-            }
-        }
-        
-        // Update UI dengan info perangkat
-        function updateDeviceInfo() {
-            const deviceInfo = document.getElementById('deviceInfo');
-            deviceInfo.textContent = ` | ${detectDevice()}`;
-        }
-        
-        // Update waktu terakhir update
-        function updateLastUpdateTime() {
-            const lastUpdateElement = document.getElementById('lastUpdateTime');
-            lastUpdateElement.textContent = `Update: ${timeAgo(lastSyncTime)}`;
-        }
-        
-        // Update status koneksi
-        function updateConnectionStatus(isOnline) {
-            const statusElement = document.getElementById('connectionStatus');
-            const statusText = document.getElementById('statusText');
-            
-            if (isOnline) {
-                statusElement.classList.remove('offline');
-                statusText.textContent = 'Online';
-            } else {
-                statusElement.classList.add('offline');
-                statusText.textContent = 'Offline';
-            }
-        }
-        
-        // Cek koneksi internet
-        function checkConnection() {
-            const isOnline = navigator.onLine;
-            updateConnectionStatus(isOnline);
-            return isOnline;
-        }
-        
         // Load orders dari localStorage
         function loadOrders() {
             try {
@@ -1435,11 +1339,6 @@
                 orders = stored ? JSON.parse(stored) : [];
                 // Sort by timestamp (newest first)
                 orders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                
-                // Update sync version
-                const storedVersion = localStorage.getItem(STORAGE_KEYS.SYNC_VERSION);
-                syncVersion = storedVersion ? parseInt(storedVersion) : 0;
-                
                 return orders;
             } catch (error) {
                 console.error('Error loading orders:', error);
@@ -1452,14 +1351,8 @@
         function saveOrders() {
             try {
                 localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
-                syncVersion++;
-                localStorage.setItem(STORAGE_KEYS.SYNC_VERSION, syncVersion.toString());
-                lastSyncTime = Date.now();
-                updateLastUpdateTime();
-                return true;
             } catch (error) {
                 console.error('Error saving orders:', error);
-                return false;
             }
         }
         
@@ -1475,7 +1368,6 @@
                 document.getElementById('processingCount').textContent = processingCount;
                 document.getElementById('completedCount').textContent = completedCount;
                 document.getElementById('totalOrdersCount').textContent = totalOrdersCount;
-                document.getElementById('orderCount').textContent = `${totalOrdersCount} pesanan`;
             } catch (error) {
                 console.error('Error updating stats:', error);
             }
@@ -1588,62 +1480,34 @@
             }
         }
         
-        // Sinkronisasi data antar perangkat
-        function syncData() {
+        // Check for new orders
+        function checkForNewOrders() {
             try {
-                if (!checkConnection()) return false;
+                if (!isAdminPageVisible) return;
                 
-                // Cek perubahan di localStorage
+                const previousOrderCount = orders.length;
                 const currentOrders = loadOrders();
-                const currentVersion = syncVersion;
                 
-                // Cek untuk pesanan baru dari sessionStorage (cross-device communication)
-                const sessionOrders = sessionStorage.getItem('pangsit_cross_device_orders');
-                if (sessionOrders) {
-                    try {
-                        const newOrders = JSON.parse(sessionOrders);
-                        let hasNewData = false;
-                        
-                        newOrders.forEach(newOrder => {
-                            const existingOrder = currentOrders.find(o => o.id === newOrder.id);
-                            if (!existingOrder) {
-                                currentOrders.unshift(newOrder);
-                                hasNewData = true;
-                            }
-                        });
-                        
-                        if (hasNewData) {
-                            orders = currentOrders;
-                            saveOrders();
-                            showNotification('🔄 Data tersinkronisasi dari perangkat lain', 'info');
-                        }
-                        
-                        // Clear sessionStorage setelah diproses
-                        sessionStorage.removeItem('pangsit_cross_device_orders');
-                    } catch (e) {
-                        console.log('Error parsing session orders:', e);
-                    }
-                }
-                
-                // Cek flag untuk pesanan baru
-                const newOrderFlag = localStorage.getItem(STORAGE_KEYS.NEW_ORDER_FLAG);
-                const newOrderTime = localStorage.getItem(STORAGE_KEYS.LAST_CHECK);
+                // Check for new orders via localStorage event flags
+                const newOrderFlag = localStorage.getItem('pangsit_new_order');
+                const newOrderTime = localStorage.getItem('pangsit_last_order_time');
                 
                 let hasNewOrders = false;
                 
                 // Method 1: Check order count
-                if (currentOrders.length > lastOrderCount) {
+                if (currentOrders.length > previousOrderCount) {
                     hasNewOrders = true;
                     orders = currentOrders;
-                    lastOrderCount = currentOrders.length;
                 }
                 // Method 2: Check for new order flag
                 else if (newOrderFlag) {
                     try {
                         const newOrderData = JSON.parse(newOrderFlag);
+                        // Check if this order already exists
                         const existingOrder = orders.find(o => o.id === newOrderData.id);
                         if (!existingOrder) {
                             hasNewOrders = true;
+                            // Add to beginning of array
                             orders.unshift(newOrderData);
                             saveOrders();
                         }
@@ -1656,16 +1520,10 @@
                     const lastOrderTime = parseInt(newOrderTime);
                     const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
                     if (lastOrderTime > fiveMinutesAgo) {
+                        // Reload all orders to be sure
                         orders = loadOrders();
                         hasNewOrders = true;
                     }
-                }
-                
-                // Method 4: Check sync version for changes
-                const storedVersion = localStorage.getItem(STORAGE_KEYS.SYNC_VERSION);
-                if (storedVersion && parseInt(storedVersion) > currentVersion) {
-                    orders = loadOrders();
-                    hasNewOrders = true;
                 }
                 
                 // If new orders detected, update display
@@ -1701,27 +1559,15 @@
                         } catch (e) {
                             showNotification('📦 Pesanan baru masuk!', 'success');
                         }
-                        localStorage.removeItem(STORAGE_KEYS.NEW_ORDER_FLAG);
+                        localStorage.removeItem('pangsit_new_order');
                     }
                     
-                    lastSyncTime = Date.now();
-                    updateLastUpdateTime();
-                    return true;
+                    // Update last check time
+                    localStorage.setItem(STORAGE_KEYS.LAST_CHECK, Date.now().toString());
                 }
-                
-                lastSyncTime = Date.now();
-                updateLastUpdateTime();
-                return false;
             } catch (error) {
-                console.error('Error syncing data:', error);
-                return false;
+                console.error('Error checking new orders:', error);
             }
-        }
-        
-        // Check for new orders (main function)
-        function checkForNewOrders() {
-            if (!isAdminPageVisible) return;
-            syncData();
         }
         
         // Filter orders
@@ -1962,37 +1808,47 @@
             // Initial load
             loadOrders();
             lastOrderCount = orders.length;
-            lastSyncTime = Date.now();
-            
             renderOrdersTable();
             updateStats();
-            updateDeviceInfo();
-            updateLastUpdateTime();
-            checkConnection();
             
-            // Start interval for checking new orders (every 1.5 seconds for faster response)
-            monitoringInterval = setInterval(checkForNewOrders, 1500);
-            
-            // Start sync interval for cross-device communication (every 3 seconds)
-            syncInterval = setInterval(syncData, 3000);
+            // Start interval for checking new orders (every 2 seconds for faster response)
+            monitoringInterval = setInterval(checkForNewOrders, 2000);
             
             // Listen for storage events (from other tabs/windows)
             window.addEventListener('storage', function(e) {
-                if (e.key === STORAGE_KEYS.ORDERS || 
-                    e.key === STORAGE_KEYS.NEW_ORDER_FLAG || 
-                    e.key === STORAGE_KEYS.SYNC_VERSION) {
+                if (e.key === STORAGE_KEYS.ORDERS || e.key === 'pangsit_new_order' || e.key === 'pangsit_last_order_time') {
                     checkForNewOrders();
                 }
             });
             
-            // Listen for online/offline events
-            window.addEventListener('online', () => {
-                checkConnection();
-                checkForNewOrders();
-            });
-            
-            window.addEventListener('offline', () => {
-                checkConnection();
+            // Listen for custom events from main app
+            window.addEventListener('newPangsitOrder', function(e) {
+                if (e.detail && isAdminPageVisible) {
+                    // Add new order to array
+                    orders.unshift(e.detail);
+                    lastOrderCount = orders.length;
+                    
+                    // Save to localStorage
+                    saveOrders();
+                    
+                    // Apply current filter
+                    let filteredOrders = orders;
+                    if (currentFilter !== 'all') {
+                        filteredOrders = orders.filter(o => o.status === currentFilter);
+                    }
+                    
+                    renderOrdersTable(filteredOrders);
+                    updateStats();
+                    
+                    // Show notification
+                    showNotification(
+                        `🔥 <strong>PESANAN BARU LANGSUNG!</strong><br>
+                         📋 ${e.detail.id}<br>
+                         👤 ${e.detail.customer?.name || 'Pelanggan'}<br>
+                         💰 ${formatRupiah(e.detail.total || 0)}`,
+                        'success'
+                    );
+                }
             });
             
             // Also check when window gets focus (user comes back to tab)
@@ -2007,8 +1863,7 @@
                 }
             });
             
-            console.log('🔔 Monitoring pesanan diaktifkan - Siap menerima pesanan dari HP & Laptop');
-            showNotification('✅ Sistem monitoring aktif! Siap menerima pesanan dari HP & Laptop', 'success');
+            console.log('🔔 Monitoring pesanan diaktifkan - Responsif di HP & Laptop');
         }
         
         // Stop monitoring
@@ -2016,10 +1871,6 @@
             if (monitoringInterval) {
                 clearInterval(monitoringInterval);
                 monitoringInterval = null;
-            }
-            if (syncInterval) {
-                clearInterval(syncInterval);
-                syncInterval = null;
             }
         }
         
@@ -2057,7 +1908,7 @@
                 const icon = this.querySelector('i');
                 icon.classList.add('rotating');
                 loadOrders();
-                syncData();
+                checkForNewOrders();
                 setTimeout(() => {
                     icon.classList.remove('rotating');
                 }, 1000);
@@ -2154,8 +2005,19 @@
             // Add touch event support for mobile
             document.addEventListener('touchstart', function(){}, {passive: true});
             
+            // Prevent zoom on double-tap for mobile
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+            
             // Handle orientation change
             window.addEventListener('orientationchange', function() {
+                // Small delay to allow CSS to adjust
                 setTimeout(checkForNewOrders, 300);
             });
         });
