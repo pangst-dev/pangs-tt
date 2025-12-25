@@ -16,17 +16,6 @@
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* CSS yang sama seperti sebelumnya... */
-    </style>
-</head>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PANGS!T - Toko Online</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
         /* Reset dan variabel CSS */
         :root {
             --primary: #ff6b35;
@@ -591,6 +580,11 @@
         .status-pending {
             background-color: #fff3cd;
             color: #856404;
+        }
+        
+        .status-paid {
+            background-color: #cce5ff;
+            color: #004085;
         }
         
         .status-processing {
@@ -1604,8 +1598,8 @@
                             <div style="width: 80px; height: 80px; background-color: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 20px;">
                                 <i class="fas fa-check"></i>
                             </div>
-                            <h3 style="color: var(--secondary); margin-bottom: 10px;">Pesanan Siap Diproses!</h3>
-                            <p style="color: var(--gray);">Pesanan Anda akan segera diproses setelah pembayaran</p>
+                            <h3 style="color: var(--secondary); margin-bottom: 10px;">Pembayaran Selesai!</h3>
+                            <p style="color: var(--gray);">Pesanan Anda sudah lunas dan akan segera diproses</p>
                         </div>
                         
                         <!-- Container untuk instruksi pembayaran -->
@@ -1802,6 +1796,8 @@
 
         // Simpan pesanan ke localStorage
         function saveCustomerOrder(orderData) {
+            // Status langsung jadi 'paid' (lunas) karena pembayaran selesai
+            orderData.status = 'paid';
             customerOrders.unshift(orderData);
             
             // Simpan maksimal 50 pesanan terakhir
@@ -1812,41 +1808,7 @@
             localStorage.setItem('customerOrders', JSON.stringify(customerOrders));
             renderCustomerOrders();
             
-            // Juga simpan ke admin orders
-            saveOrderToAdmin(orderData);
-            
             return orderData;
-        }
-
-        // Simpan ke sistem admin
-        function saveOrderToAdmin(orderData) {
-            try {
-                // Ambil data pesanan admin yang sudah ada
-                let adminOrders = JSON.parse(localStorage.getItem('pangsit_admin_orders')) || [];
-                
-                // Tambahkan pesanan baru
-                adminOrders.unshift(orderData);
-                
-                // Simpan maksimal 100 pesanan
-                if (adminOrders.length > 100) {
-                    adminOrders = adminOrders.slice(0, 100);
-                }
-                
-                localStorage.setItem('pangsit_admin_orders', JSON.stringify(adminOrders));
-                
-                // Dispatch event untuk update admin panel
-                const orderEvent = new CustomEvent('newOrderForAdmin', { 
-                    detail: orderData 
-                });
-                window.dispatchEvent(orderEvent);
-                
-                console.log('✅ Pesanan disimpan ke sistem admin:', orderData.id);
-                return orderData;
-                
-            } catch (error) {
-                console.error('❌ Error menyimpan ke admin:', error);
-                return null;
-            }
         }
 
         // Render pesanan konsumen
@@ -1870,8 +1832,8 @@
                 orderCard.className = 'order-card';
                 
                 // Tentukan status class berdasarkan status pesanan
-                let statusClass = 'status-pending';
-                let statusText = 'Menunggu Pembayaran';
+                let statusClass = 'status-paid';
+                let statusText = 'Lunas';
                 
                 if (order.status === 'processing') {
                     statusClass = 'status-processing';
@@ -1910,7 +1872,7 @@
                             <div>Total Pembayaran:</div>
                             <div class="order-total-amount">${formatRupiah(order.total)}</div>
                             <div style="font-size: 14px; color: var(--gray); margin-top: 5px;">
-                                Metode: ${order.paymentMethod.toUpperCase()}
+                                Metode: ${order.paymentMethod ? order.paymentMethod.toUpperCase() : 'QRIS'}
                             </div>
                         </div>
                     </div>
@@ -1934,6 +1896,20 @@
             const order = customerOrders.find(o => o.id === orderId);
             if (!order) return;
             
+            // Tentukan status teks
+            let statusText = 'Lunas';
+            if (order.status === 'processing') statusText = 'Sedang Diproses';
+            else if (order.status === 'shipped') statusText = 'Dalam Pengiriman';
+            else if (order.status === 'delivered') statusText = 'Telah Dikirim';
+            else if (order.status === 'cancelled') statusText = 'Dibatalkan';
+            
+            // Tentukan status class
+            let statusClass = 'status-paid';
+            if (order.status === 'processing') statusClass = 'status-processing';
+            else if (order.status === 'shipped') statusClass = 'status-shipped';
+            else if (order.status === 'delivered') statusClass = 'status-delivered';
+            else if (order.status === 'cancelled') statusClass = 'status-cancelled';
+            
             // Buat modal untuk detail pesanan
             const modalHTML = `
                 <div class="modal" id="orderDetailModal" style="display: flex;">
@@ -1952,19 +1928,12 @@
                                 </div>
                                 <div>
                                     <h4 style="color: var(--secondary); margin-bottom: 10px;">Status Pesanan</h4>
-                                    <div class="order-status ${order.status === 'processing' ? 'status-processing' : 
-                                                               order.status === 'shipped' ? 'status-shipped' : 
-                                                               order.status === 'delivered' ? 'status-delivered' : 
-                                                               order.status === 'cancelled' ? 'status-cancelled' : 'status-pending'}" 
-                                         style="display: inline-block; margin-bottom: 15px;">
-                                        ${order.status === 'processing' ? 'Sedang Diproses' : 
-                                          order.status === 'shipped' ? 'Dalam Pengiriman' : 
-                                          order.status === 'delivered' ? 'Telah Dikirim' : 
-                                          order.status === 'cancelled' ? 'Dibatalkan' : 'Menunggu Pembayaran'}
+                                    <div class="order-status ${statusClass}" style="display: inline-block; margin-bottom: 15px;">
+                                        ${statusText}
                                     </div>
                                     <p><strong>Tanggal:</strong> ${order.date}</p>
                                     <p><strong>Waktu:</strong> ${order.time}</p>
-                                    <p><strong>Metode Bayar:</strong> ${order.paymentMethod.toUpperCase()}</p>
+                                    <p><strong>Metode Bayar:</strong> ${order.paymentMethod ? order.paymentMethod.toUpperCase() : 'QRIS'}</p>
                                 </div>
                             </div>
                             
@@ -2041,6 +2010,13 @@
             const order = customerOrders.find(o => o.id === orderId);
             if (!order) return;
             
+            // Tentukan status teks
+            let statusText = 'LUNAS';
+            if (order.status === 'processing') statusText = 'SEDANG DIPROSES';
+            else if (order.status === 'shipped') statusText = 'DALAM PENGIRIMAN';
+            else if (order.status === 'delivered') statusText = 'TELAH DIKIRIM';
+            else if (order.status === 'cancelled') statusText = 'DIBATALKAN';
+            
             // Buat konten invoice
             const invoiceContent = `
                 <div class="invoice-container">
@@ -2056,10 +2032,7 @@
                             <p><strong>Invoice No:</strong> ${order.id}</p>
                             <p><strong>Tanggal:</strong> ${order.date}</p>
                             <p><strong>Waktu:</strong> ${order.time}</p>
-                            <p><strong>Status:</strong> ${order.status === 'processing' ? 'Sedang Diproses' : 
-                                                       order.status === 'shipped' ? 'Dalam Pengiriman' : 
-                                                       order.status === 'delivered' ? 'Telah Dikirim' : 
-                                                       order.status === 'cancelled' ? 'Dibatalkan' : 'Menunggu Pembayaran'}</p>
+                            <p><strong>Status:</strong> <span style="color: #004085; font-weight: bold;">${statusText}</span></p>
                         </div>
                         <div>
                             <h4>Informasi Pelanggan</h4>
@@ -2112,9 +2085,10 @@
                     <div style="clear: both;"></div>
                     
                     <div class="invoice-note">
-                        <p><strong>Metode Pembayaran:</strong> ${order.paymentMethod.toUpperCase()}</p>
+                        <p><strong>Metode Pembayaran:</strong> ${order.paymentMethod ? order.paymentMethod.toUpperCase() : 'QRIS'}</p>
+                        <p><strong>Status Pembayaran:</strong> <span style="color: #004085; font-weight: bold;">LUNAS</span></p>
                         <p><strong>Catatan:</strong> ${order.notes || 'Tidak ada catatan'}</p>
-                        <p style="margin-top: 15px;">Terima kasih telah berbelanja di PANGS!T STORE</p>
+                        <p style="margin-top: 15px; font-weight: bold; color: var(--primary);">Terima kasih telah berbelanja di PANGS!T STORE</p>
                     </div>
                 </div>
             `;
@@ -2477,183 +2451,46 @@
         function showPaymentInstructions(paymentMethod, totalAmount, orderId) {
             const paymentContainer = document.getElementById('paymentInstructionsContainer');
             
-            if (paymentMethod === 'qris') {
-                // QRIS
-                paymentContainer.innerHTML = `
-                    <div class="qris-container">
-                        <div class="qris-title">
-                            <i class="fas fa-qrcode"></i> QRIS Payment
-                        </div>
-                        <div class="qris-subtitle">
-                            Scan QR Code di bawah untuk pembayaran via QRIS
-                        </div>
-                        
-                        <div class="qris-code">
-                            <img src="foto/qris.png" alt="QR Code" style="width: 180px; height: 180px; border-radius: 5px;">
-                        </div>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
-                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
-                        </div>
-                        
-                        <div class="qris-instruction">
-                            <p><strong>Cara Pembayaran:</strong></p>
-                            <ol class="qris-steps">
-                                <li>Buka aplikasi e-wallet atau mobile banking yang mendukung QRIS</li>
-                                <li>Pilih fitur "Scan QR" di menu utama</li>
-                                <li>Arahkan kamera ke QR Code di atas</li>
-                                <li>Periksa jumlah pembayaran: <strong>${formatRupiah(totalAmount)}</strong></li>
-                                <li>Konfirmasi pembayaran</li>
-                                <li>Tunggu notifikasi pembayaran berhasil</li>
-                            </ol>
-                        </div>
-                    </div>
-                `;
-            } else if (paymentMethod === 'gopay') {
-                // GOPAY
-                paymentContainer.innerHTML = `
-                    <div class="qris-container">
-                        <div class="qris-title">
-                            <i class="fas fa-wallet"></i> GOPAY Payment
-                        </div>
-                        <div class="qris-subtitle">
-                            Gunakan GOPAY untuk menyelesaikan pembayaran
-                        </div>
-                        
-                        <div class="qris-code">
-                            <img src="foto/gopay.png" alt="GOPAY QR" style="width: 180px; height: 180px; border-radius: 5px;">
-                        </div>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
-                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
-                        </div>
-                        
-                        <div class="qris-instruction">
-                            <p><strong>Cara Pembayaran GOPAY:</strong></p>
-                            <ol class="qris-steps">
-                                <li>Buka aplikasi GOPAY di smartphone Anda</li>
-                                <li>Pilih fitur "Scan QR" atau "Bayar"</li>
-                                <li>Arahkan kamera ke QR Code di atas</li>
-                                <li>Periksa jumlah pembayaran: <strong>${formatRupiah(totalAmount)}</strong></li>
-                                <li>Masukkan PIN atau gunakan verifikasi biometrik</li>
-                                <li>Tunggu konfirmasi pembayaran berhasil</li>
-                            </ol>
-                        </div>
-                    </div>
-                `;
-            } else if (paymentMethod === 'ovo') {
-                // OVO
-                paymentContainer.innerHTML = `
-                    <div class="qris-container">
-                        <div class="qris-title">
-                            <i class="fas fa-mobile-alt"></i> OVO Payment
-                        </div>
-                        <div class="qris-subtitle">
-                            Gunakan OVO untuk menyelesaikan pembayaran
-                        </div>
-                        
-                        <div class="qris-code">
-                            <img src="foto/ovo.png" alt="OVO QR" style="width: 180px; height: 180px; border-radius: 5px;">
-                        </div>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
-                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
-                        </div>
-                        
-                        <div class="qris-instruction">
-                            <p><strong>Cara Pembayaran OVO:</strong></p>
-                            <ol class="qris-steps">
-                                <li>Buka aplikasi OVO di smartphone Anda</li>
-                                <li>Pilih fitur "Scan QR" atau "Bayar"</li>
-                                <li>Arahkan kamera ke QR Code di atas</li>
-                                <li>Periksa jumlah pembayaran: <strong>${formatRupiah(totalAmount)}</strong></li>
-                                <li>Masukkan PIN atau gunakan verifikasi biometrik</li>
-                                <li>Tunggu konfirmasi pembayaran berhasil</li>
-                            </ol>
-                        </div>
-                    </div>
-                `;
-            } else if (paymentMethod === 'dana') {
-                // DANA
-                paymentContainer.innerHTML = `
-                    <div class="qris-container">
-                        <div class="qris-title">
-                            <i class="fas fa-qrcode"></i> DANA Payment
-                        </div>
-                        <div class="qris-subtitle">
-                            Gunakan DANA untuk menyelesaikan pembayaran
-                        </div>
-                        
-                        <div class="qris-code">
-                            <img src="foto/dana.png" alt="DANA QR" style="width: 180px; height: 180px; border-radius: 5px;">
-                        </div>
-                        
-                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
-                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
-                        </div>
-                        
-                        <div class="qris-instruction">
-                            <p><strong>Cara Pembayaran DANA:</strong></p>
-                            <ol class="qris-steps">
-                                <li>Buka aplikasi DANA di smartphone Anda</li>
-                                <li>Pilih fitur "Scan QR" atau "Bayar"</li>
-                                <li>Arahkan kamera ke QR Code di atas</li>
-                                <li>Periksa jumlah pembayaran: <strong>${formatRupiah(totalAmount)}</strong></li>
-                                <li>Masukkan PIN atau gunakan verifikasi biometrik</li>
-                                <li>Tunggu konfirmasi pembayaran berhasil</li>
-                            </ol>
-                        </div>
-                    </div>
-                `;
-            } else if (['bca', 'mandiri', 'bni', 'bri'].includes(paymentMethod)) {
-                // Bank Transfer
-                const bankInfo = bankAccounts[paymentMethod];
-                const bankImage = `foto/${paymentMethod}.png`;
-                
-                paymentContainer.innerHTML = `
-                    <div class="bank-transfer-container">
-                        <div class="bank-name">${bankInfo.bank} Transfer</div>
-                        <img src="${bankImage}" alt="${bankInfo.bank}" class="bank-logo-large" onerror="this.src='foto/bank.png'">
-                        <div class="account-number">${bankInfo.number}</div>
-                        <div class="account-name">a.n. ${bankInfo.name}</div>
-                        
-                        <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
-                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
-                        </div>
-                        
-                        <div class="transfer-instructions">
-                            <h4>Cara Transfer via ${bankInfo.bank}:</h4>
-                            <ol>
-                                <li>Buka aplikasi ${bankInfo.bank} Mobile Banking atau ATM</li>
-                                <li>Pilih menu "Transfer" atau "Kirim Uang"</li>
-                                <li>Masukkan nomor rekening: <strong>${bankInfo.number}</strong></li>
-                                <li>Nama penerima: <strong>${bankInfo.name}</strong></li>
-                                <li>Jumlah transfer: <strong>${formatRupiah(totalAmount)}</strong></li>
-                                <li>Konfirmasi dan selesaikan transaksi</li>
-                                <li>Simpan bukti transfer sebagai referensi</li>
-                            </ol>
-                        </div>
-                    </div>
-                `;
-            }
+            // Hapus instruksi sebelumnya
+            paymentContainer.innerHTML = '';
             
-            // Tambahkan order ID
-            const orderIdElement = document.createElement('div');
-            orderIdElement.style.marginTop = '15px';
-            orderIdElement.style.padding = '10px';
-            orderIdElement.style.background = '#e8f5e9';
-            orderIdElement.style.borderRadius = '5px';
-            orderIdElement.style.borderLeft = '4px solid #4caf50';
-            orderIdElement.innerHTML = `
-                <div style="font-weight: 600; color: #2e7d32; margin-bottom: 5px;">Order ID:</div>
-                <div style="font-family: monospace; color: var(--dark);">${orderId}</div>
+            // Update teks di modal
+            const modalTitle = document.querySelector('#step3Form h3');
+            const modalSubtitle = document.querySelector('#step3Form p');
+            
+            if (modalTitle) modalTitle.textContent = 'Pembayaran Selesai!';
+            if (modalSubtitle) modalSubtitle.textContent = 'Pesanan Anda sudah lunas dan akan segera diproses';
+            
+            // Tampilkan konfirmasi pembayaran berhasil
+            paymentContainer.innerHTML = `
+                <div style="text-align: center; padding: 20px; background: #e8f5e9; border-radius: 10px; margin: 20px auto; max-width: 400px; border-left: 5px solid #4caf50;">
+                    <div style="width: 60px; height: 60px; background: #4caf50; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 15px;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 style="color: #2e7d32; margin-bottom: 10px;">Pembayaran Berhasil!</h3>
+                    <p style="color: #666; margin-bottom: 15px;">Pembayaran Anda sebesar:</p>
+                    <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 15px;">
+                        ${formatRupiah(totalAmount)}
+                    </div>
+                    <p style="color: #666; margin-bottom: 20px;">Status: <span style="color: #2e7d32; font-weight: bold;">LUNAS</span></p>
+                    
+                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: left; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Metode Pembayaran:</span>
+                            <span style="font-weight: bold;">${paymentMethod.toUpperCase()}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Order ID:</span>
+                            <span style="font-weight: bold; color: var(--primary);">${orderId}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; text-align: left; font-size: 14px; color: #856404;">
+                        <p style="margin-bottom: 10px;"><i class="fas fa-info-circle"></i> Pesanan Anda akan segera diproses.</p>
+                        <p>Anda bisa melacak status pesanan di halaman <strong>Status Pesanan</strong>.</p>
+                    </div>
+                </div>
             `;
-            paymentContainer.appendChild(orderIdElement);
         }
 
         // Tampilkan invoice
@@ -2674,7 +2511,7 @@
                             <p><strong>Invoice No:</strong> ${orderData.id}</p>
                             <p><strong>Tanggal:</strong> ${orderData.date}</p>
                             <p><strong>Waktu:</strong> ${orderData.time}</p>
-                            <p><strong>Status:</strong> Menunggu Pembayaran</p>
+                            <p><strong>Status:</strong> <span style="color: #004085; font-weight: bold;">LUNAS</span></p>
                         </div>
                         <div>
                             <h4>Informasi Pelanggan</h4>
@@ -2727,9 +2564,10 @@
                     <div style="clear: both;"></div>
                     
                     <div class="invoice-note">
-                        <p><strong>Metode Pembayaran:</strong> ${orderData.paymentMethod.toUpperCase()}</p>
+                        <p><strong>Metode Pembayaran:</strong> ${orderData.paymentMethod ? orderData.paymentMethod.toUpperCase() : 'QRIS'}</p>
+                        <p><strong>Status Pembayaran:</strong> <span style="color: #004085; font-weight: bold;">LUNAS</span></p>
                         <p><strong>Catatan:</strong> ${orderData.notes || 'Tidak ada catatan'}</p>
-                        <p style="margin-top: 15px;">Terima kasih telah berbelanja di PANGS!T STORE</p>
+                        <p style="margin-top: 15px; font-weight: bold; color: var(--primary);">Terima kasih telah berbelanja di PANGS!T STORE</p>
                     </div>
                 </div>
             `;
@@ -2761,7 +2599,7 @@
                 // Generate order ID
                 const orderId = generateOrderId();
                 
-                // Buat objek pesanan
+                // Buat objek pesanan - status langsung 'paid' (lunas)
                 const orderData = {
                     id: orderId,
                     customer: {
@@ -2777,7 +2615,7 @@
                         image: item.image || 'foto/default.jpg'
                     })),
                     paymentMethod: paymentMethod,
-                    status: 'pending', // Status awal: menunggu pembayaran
+                    status: 'paid', // Status langsung jadi 'lunas' (paid)
                     date: new Date().toLocaleDateString('id-ID'),
                     time: new Date().toLocaleTimeString('id-ID', { 
                         hour: '2-digit', 
@@ -2795,7 +2633,7 @@
                 const savedOrder = saveCustomerOrder(orderData);
                 
                 if (savedOrder) {
-                    console.log('✅ Pesanan berhasil dibuat:', savedOrder.id);
+                    console.log('✅ Pesanan berhasil dibuat dengan status LUNAS:', savedOrder.id);
                     
                     // Reset cart jika checkout dari cart
                     const isFromCart = JSON.stringify(checkoutItems) === JSON.stringify(cart);
@@ -3072,7 +2910,7 @@
                 // Generate order ID
                 const orderId = generateOrderId();
                 
-                // Tampilkan instruksi pembayaran
+                // Tampilkan instruksi pembayaran (simulasi pembayaran berhasil)
                 showPaymentInstructions(selectedPayment.getAttribute('data-method'), total, orderId);
                 
                 // Update step
@@ -3100,12 +2938,12 @@
             
             // Event listener untuk tombol selesai
             document.getElementById('closeOrderModal').addEventListener('click', () => {
-                // 1. Buat dan simpan pesanan
+                // 1. Buat dan simpan pesanan dengan status LUNAS
                 const savedOrder = createOrderFromCheckout();
                 
                 if (savedOrder) {
                     // 2. Tampilkan notifikasi sukses
-                    showNotification(`✅ Pesanan ${savedOrder.id} berhasil dibuat!`);
+                    showNotification(`✅ Pesanan ${savedOrder.id} berhasil! Status: LUNAS`);
                     
                     // 3. Tampilkan invoice
                     document.getElementById('invoiceContainer').style.display = 'block';
@@ -3115,6 +2953,12 @@
                     setTimeout(() => {
                         document.getElementById('invoiceContainer').scrollIntoView({ behavior: 'smooth' });
                     }, 500);
+                    
+                    // 5. Tutup modal checkout setelah 3 detik
+                    setTimeout(() => {
+                        checkoutModal.classList.remove('active');
+                        document.getElementById('invoiceContainer').style.display = 'none';
+                    }, 5000);
                     
                 } else {
                     showNotification('❌ Gagal menyimpan pesanan. Silakan coba lagi.', 'error');
@@ -3145,7 +2989,7 @@
                 });
             });
             
-            console.log('✅ Sistem PANGS!T siap dengan metode pembayaran lengkap dan status pesanan');
+            console.log('✅ Sistem PANGS!T siap dengan status LUNAS otomatis');
         }
 
         // Ekspor fungsi ke global scope untuk akses dari HTML
@@ -3154,417 +2998,6 @@
 
         // Jalankan inisialisasi saat halaman dimuat
         document.addEventListener('DOMContentLoaded', init);
-        // ==================== SISTEM REAL-TIME KE WEBSITE ADMIN ====================
-
-// KODE UNIK UNTUK TOKO INI (JANGAN DIUBAH!)
-const TOKO_ID = 'PANGSIT_' + Math.random().toString(36).substr(2, 9);
-
-// Fungsi untuk simpan order ke sistem cloud (gratis)
-async function simpanOrderKeCloud(orderData) {
-    try {
-        // Simpan ke localStorage admin (untuk real-time)
-        const orderCloud = {
-            toko_id: TOKO_ID,
-            order_id: orderData.id,
-            nama: orderData.customer.name,
-            telp: orderData.customer.phone,
-            alamat: orderData.customer.address,
-            items: orderData.products.map(p => `${p.name} x${p.quantity}`).join(', '),
-            total: orderData.total,
-            waktu: new Date().toLocaleString('id-ID'),
-            status: 'BARU'
-        };
-        
-        // Kirim ke cloud storage (menggunakan jsonstorage.net - GRATIS)
-        const cloudURL = 'https://api.jsonstorage.net/v1/json';
-        
-        // Buat data untuk cloud
-        const cloudData = {
-            toko: 'PANGS!T',
-            order: orderCloud,
-            timestamp: Date.now()
-        };
-        
-        // Simpan ke JSON Storage (cloud gratis)
-        const response = await fetch(cloudURL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(cloudData)
-        });
-        
-        const result = await response.json();
-        console.log('✅ Order disimpan ke cloud:', result);
-        
-        // Juga simpan di localStorage HP ini
-        simpanOrderLokal(orderCloud);
-        
-        return true;
-        
-    } catch (error) {
-        console.log('⚠️ Cloud error, simpan ke localStorage saja');
-        // Tetap simpan lokal
-        simpanOrderLokal({
-            toko_id: TOKO_ID,
-            order_id: orderData.id,
-            nama: orderData.customer.name,
-            telp: orderData.customer.phone,
-            alamat: orderData.customer.address,
-            items: orderData.products.map(p => `${p.name} x${p.quantity}`).join(', '),
-            total: orderData.total,
-            waktu: new Date().toLocaleString('id-ID'),
-            status: 'BARU'
-        });
-        return true;
-    }
-}
-
-// Simpan order di localStorage HP customer
-function simpanOrderLokal(orderCloud) {
-    // Ambil semua order
-    let semuaOrder = JSON.parse(localStorage.getItem('pangsit_cloud_orders')) || [];
-    
-    // Tambah order baru
-    semuaOrder.push(orderCloud);
-    
-    // Simpan maksimal 100 order
-    if (semuaOrder.length > 100) {
-        semuaOrder = semuaOrder.slice(-100);
-    }
-    
-    // Simpan ke localStorage
-    localStorage.setItem('pangsit_cloud_orders', JSON.stringify(semuaOrder));
-    
-    console.log('✅ Order disimpan lokal');
-}
-
-// Modifikasi: Setiap order, simpan ke cloud
-document.addEventListener('DOMContentLoaded', function() {
-    // Tangkap tombol selesai checkout
-    const tombolSelesai = document.getElementById('closeOrderModal');
-    
-    if (tombolSelesai) {
-        // Simpan fungsi asli
-        const fungsiAsli = tombolSelesai.onclick;
-        
-        // Ganti dengan fungsi baru
-        tombolSelesai.onclick = async function() {
-            // 1. Ambil data dari form
-            const nama = document.getElementById('fullName')?.value || 'Tidak ada nama';
-            const telp = document.getElementById('phone')?.value || 'Tidak ada telp';
-            const alamat = document.getElementById('address')?.value || 'Tidak ada alamat';
-            
-            // 2. Ambil items dari keranjang
-            const items = [];
-            cart.forEach(item => {
-                items.push({
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: item.price
-                });
-            });
-            
-            // 3. Hitung total
-            const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-            const total = subtotal + 15000 + (subtotal * 0.1);
-            
-            // 4. Buat data order
-            const orderData = {
-                id: 'PANG-' + Date.now(),
-                customer: {
-                    name: nama,
-                    phone: telp,
-                    address: alamat
-                },
-                products: items,
-                total: total,
-                date: new Date().toLocaleDateString('id-ID'),
-                time: new Date().toLocaleTimeString('id-ID')
-            };
-            
-            // 5. Simpan ke cloud
-            await simpanOrderKeCloud(orderData);
-            
-            // 6. Jalankan fungsi asli
-            if (fungsiAsli) {
-                fungsiAsli.call(this);
-            }
-            
-            // 7. Kasih tau customer
-            alert('✅ Order berhasil! Data sudah dikirim ke sistem admin.');
-            
-            // 8. Tampilkan QR code untuk admin
-            tampilkanQRCode(orderData.id);
-        };
-    }
-});
-
-// Tampilkan QR Code untuk admin scan
-function tampilkanQRCode(orderId) {
-    // Cari modal checkout
-    const modalContent = document.querySelector('.checkout-form');
-    
-    if (modalContent) {
-        // Buat QR code container
-        const qrContainer = document.createElement('div');
-        qrContainer.id = 'qrAdminContainer';
-        qrContainer.style.cssText = `
-            text-align: center;
-            padding: 20px;
-            margin-top: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        `;
-        
-        qrContainer.innerHTML = `
-            <h4 style="color: #2d3047; margin-bottom: 10px;">
-                <i class="fas fa-qrcode"></i> Kode Admin
-            </h4>
-            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
-                Scan kode ini di HP admin untuk update status
-            </p>
-            <div id="qrcode" style="
-                width: 150px;
-                height: 150px;
-                margin: 0 auto 15px;
-                padding: 10px;
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-            "></div>
-            <div style="
-                background: #2d3047;
-                color: white;
-                padding: 10px;
-                border-radius: 5px;
-                font-family: monospace;
-                font-size: 14px;
-                margin-bottom: 10px;
-            ">
-                ${orderId}
-            </div>
-            <p style="font-size: 12px; color: #666;">
-                Simpan screenshot kode ini jika perlu
-            </p>
-        `;
-        
-        modalContent.appendChild(qrContainer);
-        
-        // Generate QR code
-        generateQRCode(orderId);
-    }
-}
-
-// Generate QR code
-function generateQRCode(orderId) {
-    // Load QR code library
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-    
-    script.onload = function() {
-        // Generate QR code
-        const qrElement = document.getElementById('qrcode');
-        if (qrElement && window.QRCode) {
-            QRCode.toCanvas(qrElement, orderId, {
-                width: 128,
-                margin: 1,
-                color: {
-                    dark: '#2d3047',
-                    light: '#ffffff'
-                }
-            }, function(error) {
-                if (error) console.error(error);
-            });
-        }
-    };
-    
-    document.head.appendChild(script);
-}
-
-// Tambah halaman "Live Orders" di toko online
-setTimeout(function() {
-    // Cari section status
-    const statusSection = document.getElementById('status');
-    
-    if (statusSection) {
-        // Buat tab untuk live orders
-        const liveTab = document.createElement('div');
-        liveTab.style.cssText = `
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-top: 20px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-        `;
-        
-        liveTab.innerHTML = `
-            <h3 style="color: #ff6b35; margin-bottom: 15px;">
-                <i class="fas fa-satellite-dish"></i> Live Order Tracking
-            </h3>
-            
-            <div style="
-                display: flex;
-                gap: 10px;
-                margin-bottom: 20px;
-                flex-wrap: wrap;
-            ">
-                <button onclick="refreshLiveOrders()" style="
-                    background: #ff6b35;
-                    color: white;
-                    border: none;
-                    padding: 10px 15px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                ">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-                
-                <button onclick="bukaAdminPanel()" style="
-                    background: #2d3047;
-                    color: white;
-                    border: none;
-                    padding: 10px 15px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                ">
-                    <i class="fas fa-external-link-alt"></i> Buka Admin Panel
-                </button>
-            </div>
-            
-            <div id="liveOrdersContainer" style="
-                max-height: 300px;
-                overflow-y: auto;
-                border: 1px solid #eee;
-                border-radius: 8px;
-                padding: 10px;
-            ">
-                <div style="text-align: center; padding: 30px; color: #666;">
-                    <i class="fas fa-spinner fa-spin"></i><br>
-                    Memuat data order...
-                </div>
-            </div>
-            
-            <div style="
-                margin-top: 15px;
-                padding: 15px;
-                background: #f8f9fa;
-                border-radius: 8px;
-                font-size: 14px;
-                color: #666;
-            ">
-                <i class="fas fa-info-circle"></i>
-                Order yang Anda buat akan muncul di sini dan di HP admin.
-                Admin akan update status pesanan Anda.
-            </div>
-        `;
-        
-        statusSection.querySelector('.container').appendChild(liveTab);
-        
-        // Load initial data
-        refreshLiveOrders();
-        
-        // Auto refresh setiap 10 detik
-        setInterval(refreshLiveOrders, 10000);
-    }
-}, 1500);
-
-// Fungsi refresh live orders
-function refreshLiveOrders() {
-    const container = document.getElementById('liveOrdersContainer');
-    if (!container) return;
-    
-    // Ambil data dari localStorage
-    const semuaOrder = JSON.parse(localStorage.getItem('pangsit_cloud_orders')) || [];
-    
-    if (semuaOrder.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 30px; color: #666;">
-                <i class="fas fa-inbox"></i><br>
-                Belum ada order
-            </div>
-        `;
-        return;
-    }
-    
-    // Urutkan dari yang terbaru
-    const sortedOrders = [...semuaOrder].reverse();
-    
-    // Tampilkan maksimal 5 order terbaru
-    const ordersToShow = sortedOrders.slice(0, 5);
-    
-    container.innerHTML = ordersToShow.map(order => `
-        <div style="
-            border: 1px solid ${order.status === 'BARU' ? '#ff6b35' : '#ddd'};
-            border-left: 4px solid ${order.status === 'BARU' ? '#ff6b35' : 
-                                      order.status === 'PROSES' ? '#007bff' : 
-                                      order.status === 'SELESAI' ? '#28a745' : '#6c757d'};
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 10px;
-            background: white;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-                <div>
-                    <strong style="color: #2d3047;">${order.order_id}</strong>
-                    <div style="font-size: 14px; color: #666; margin-top: 5px;">
-                        <i class="fas fa-user"></i> ${order.nama}
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="
-                        font-size: 18px;
-                        font-weight: bold;
-                        color: #ff6b35;
-                    ">
-                        Rp ${order.total.toLocaleString()}
-                    </div>
-                    <div style="font-size: 12px; color: #666;">
-                        ${order.waktu}
-                    </div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 10px; font-size: 14px;">
-                <div><i class="fas fa-box"></i> ${order.items}</div>
-                <div style="margin-top: 5px; color: #666;">
-                    <i class="fas fa-map-marker-alt"></i> ${order.alamat.substring(0, 50)}...
-                </div>
-            </div>
-            
-            <div style="
-                margin-top: 10px;
-                padding: 8px;
-                background: ${order.status === 'BARU' ? '#fff3cd' : 
-                             order.status === 'PROSES' ? '#cce5ff' : 
-                             order.status === 'SELESAI' ? '#d4edda' : '#e2e3e5'};
-                border-radius: 4px;
-                text-align: center;
-                font-weight: bold;
-                color: ${order.status === 'BARU' ? '#856404' : 
-                        order.status === 'PROSES' ? '#004085' : 
-                        order.status === 'SELESAI' ? '#155724' : '#383d41'};
-                font-size: 12px;
-            ">
-                ${order.status}
-            </div>
-        </div>
-    `).join('');
-}
-
-// Buka admin panel
-function bukaAdminPanel() {
-    window.open('admin-live-pangsit.html', '_blank');
-}
-
-console.log('✅ Sistem Cloud Real-time siap!');
     </script>
 </body>
 </html>
