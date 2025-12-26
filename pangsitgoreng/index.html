@@ -582,11 +582,6 @@
             color: #856404;
         }
         
-        .status-paid {
-            background-color: #cce5ff;
-            color: #004085;
-        }
-        
         .status-processing {
             background-color: #d1ecf1;
             color: #0c5460;
@@ -605,6 +600,11 @@
         .status-cancelled {
             background-color: #f8d7da;
             color: #721c24;
+        }
+        
+        .status-lunas {
+            background-color: #d4edda;
+            color: #155724;
         }
         
         .order-details {
@@ -1598,8 +1598,8 @@
                             <div style="width: 80px; height: 80px; background-color: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 20px;">
                                 <i class="fas fa-check"></i>
                             </div>
-                            <h3 style="color: var(--secondary); margin-bottom: 10px;">Pembayaran Selesai!</h3>
-                            <p style="color: var(--gray);">Pesanan Anda sudah lunas dan akan segera diproses</p>
+                            <h3 style="color: var(--secondary); margin-bottom: 10px;">Pesanan Siap Diproses!</h3>
+                            <p style="color: var(--gray);">Pesanan Anda akan segera diproses setelah pembayaran</p>
                         </div>
                         
                         <!-- Container untuk instruksi pembayaran -->
@@ -1796,8 +1796,9 @@
 
         // Simpan pesanan ke localStorage
         function saveCustomerOrder(orderData) {
-            // Status langsung jadi 'paid' (lunas) karena pembayaran selesai
-            orderData.status = 'paid';
+            // Set status default menjadi "LUNAS" (bukan "pending")
+            orderData.status = 'lunas';
+            
             customerOrders.unshift(orderData);
             
             // Simpan maksimal 50 pesanan terakhir
@@ -1832,8 +1833,8 @@
                 orderCard.className = 'order-card';
                 
                 // Tentukan status class berdasarkan status pesanan
-                let statusClass = 'status-paid';
-                let statusText = 'Lunas';
+                let statusClass = 'status-lunas'; // Diubah dari status-pending
+                let statusText = 'LUNAS'; // Diubah dari Menunggu Pembayaran
                 
                 if (order.status === 'processing') {
                     statusClass = 'status-processing';
@@ -1847,6 +1848,9 @@
                 } else if (order.status === 'cancelled') {
                     statusClass = 'status-cancelled';
                     statusText = 'Dibatalkan';
+                } else if (order.status === 'lunas') {
+                    statusClass = 'status-lunas';
+                    statusText = 'LUNAS';
                 }
                 
                 orderCard.innerHTML = `
@@ -1872,7 +1876,7 @@
                             <div>Total Pembayaran:</div>
                             <div class="order-total-amount">${formatRupiah(order.total)}</div>
                             <div style="font-size: 14px; color: var(--gray); margin-top: 5px;">
-                                Metode: ${order.paymentMethod ? order.paymentMethod.toUpperCase() : 'QRIS'}
+                                Metode: ${order.paymentMethod.toUpperCase()}
                             </div>
                         </div>
                     </div>
@@ -1896,20 +1900,6 @@
             const order = customerOrders.find(o => o.id === orderId);
             if (!order) return;
             
-            // Tentukan status teks
-            let statusText = 'Lunas';
-            if (order.status === 'processing') statusText = 'Sedang Diproses';
-            else if (order.status === 'shipped') statusText = 'Dalam Pengiriman';
-            else if (order.status === 'delivered') statusText = 'Telah Dikirim';
-            else if (order.status === 'cancelled') statusText = 'Dibatalkan';
-            
-            // Tentukan status class
-            let statusClass = 'status-paid';
-            if (order.status === 'processing') statusClass = 'status-processing';
-            else if (order.status === 'shipped') statusClass = 'status-shipped';
-            else if (order.status === 'delivered') statusClass = 'status-delivered';
-            else if (order.status === 'cancelled') statusClass = 'status-cancelled';
-            
             // Buat modal untuk detail pesanan
             const modalHTML = `
                 <div class="modal" id="orderDetailModal" style="display: flex;">
@@ -1928,12 +1918,21 @@
                                 </div>
                                 <div>
                                     <h4 style="color: var(--secondary); margin-bottom: 10px;">Status Pesanan</h4>
-                                    <div class="order-status ${statusClass}" style="display: inline-block; margin-bottom: 15px;">
-                                        ${statusText}
+                                    <div class="order-status ${order.status === 'processing' ? 'status-processing' : 
+                                                               order.status === 'shipped' ? 'status-shipped' : 
+                                                               order.status === 'delivered' ? 'status-delivered' : 
+                                                               order.status === 'cancelled' ? 'status-cancelled' : 
+                                                               order.status === 'lunas' ? 'status-lunas' : 'status-lunas'}" 
+                                         style="display: inline-block; margin-bottom: 15px;">
+                                        ${order.status === 'processing' ? 'Sedang Diproses' : 
+                                          order.status === 'shipped' ? 'Dalam Pengiriman' : 
+                                          order.status === 'delivered' ? 'Telah Dikirim' : 
+                                          order.status === 'cancelled' ? 'Dibatalkan' : 
+                                          order.status === 'lunas' ? 'LUNAS' : 'LUNAS'}
                                     </div>
                                     <p><strong>Tanggal:</strong> ${order.date}</p>
                                     <p><strong>Waktu:</strong> ${order.time}</p>
-                                    <p><strong>Metode Bayar:</strong> ${order.paymentMethod ? order.paymentMethod.toUpperCase() : 'QRIS'}</p>
+                                    <p><strong>Metode Bayar:</strong> ${order.paymentMethod.toUpperCase()}</p>
                                 </div>
                             </div>
                             
@@ -2010,13 +2009,6 @@
             const order = customerOrders.find(o => o.id === orderId);
             if (!order) return;
             
-            // Tentukan status teks
-            let statusText = 'LUNAS';
-            if (order.status === 'processing') statusText = 'SEDANG DIPROSES';
-            else if (order.status === 'shipped') statusText = 'DALAM PENGIRIMAN';
-            else if (order.status === 'delivered') statusText = 'TELAH DIKIRIM';
-            else if (order.status === 'cancelled') statusText = 'DIBATALKAN';
-            
             // Buat konten invoice
             const invoiceContent = `
                 <div class="invoice-container">
@@ -2032,7 +2024,7 @@
                             <p><strong>Invoice No:</strong> ${order.id}</p>
                             <p><strong>Tanggal:</strong> ${order.date}</p>
                             <p><strong>Waktu:</strong> ${order.time}</p>
-                            <p><strong>Status:</strong> <span style="color: #004085; font-weight: bold;">${statusText}</span></p>
+                            <p><strong>Status:</strong> LUNAS</p>
                         </div>
                         <div>
                             <h4>Informasi Pelanggan</h4>
@@ -2085,10 +2077,10 @@
                     <div style="clear: both;"></div>
                     
                     <div class="invoice-note">
-                        <p><strong>Metode Pembayaran:</strong> ${order.paymentMethod ? order.paymentMethod.toUpperCase() : 'QRIS'}</p>
-                        <p><strong>Status Pembayaran:</strong> <span style="color: #004085; font-weight: bold;">LUNAS</span></p>
+                        <p><strong>Metode Pembayaran:</strong> ${order.paymentMethod.toUpperCase()}</p>
+                        <p><strong>Status Pembayaran:</strong> LUNAS</p>
                         <p><strong>Catatan:</strong> ${order.notes || 'Tidak ada catatan'}</p>
-                        <p style="margin-top: 15px; font-weight: bold; color: var(--primary);">Terima kasih telah berbelanja di PANGS!T STORE</p>
+                        <p style="margin-top: 15px;">Terima kasih telah berbelanja di PANGS!T STORE</p>
                     </div>
                 </div>
             `;
@@ -2451,46 +2443,183 @@
         function showPaymentInstructions(paymentMethod, totalAmount, orderId) {
             const paymentContainer = document.getElementById('paymentInstructionsContainer');
             
-            // Hapus instruksi sebelumnya
-            paymentContainer.innerHTML = '';
-            
-            // Update teks di modal
-            const modalTitle = document.querySelector('#step3Form h3');
-            const modalSubtitle = document.querySelector('#step3Form p');
-            
-            if (modalTitle) modalTitle.textContent = 'Pembayaran Selesai!';
-            if (modalSubtitle) modalSubtitle.textContent = 'Pesanan Anda sudah lunas dan akan segera diproses';
-            
-            // Tampilkan konfirmasi pembayaran berhasil
-            paymentContainer.innerHTML = `
-                <div style="text-align: center; padding: 20px; background: #e8f5e9; border-radius: 10px; margin: 20px auto; max-width: 400px; border-left: 5px solid #4caf50;">
-                    <div style="width: 60px; height: 60px; background: #4caf50; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 15px;">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <h3 style="color: #2e7d32; margin-bottom: 10px;">Pembayaran Berhasil!</h3>
-                    <p style="color: #666; margin-bottom: 15px;">Pembayaran Anda sebesar:</p>
-                    <div style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 15px;">
-                        ${formatRupiah(totalAmount)}
-                    </div>
-                    <p style="color: #666; margin-bottom: 20px;">Status: <span style="color: #2e7d32; font-weight: bold;">LUNAS</span></p>
-                    
-                    <div style="background: white; padding: 15px; border-radius: 8px; text-align: left; margin-top: 20px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span>Metode Pembayaran:</span>
-                            <span style="font-weight: bold;">${paymentMethod.toUpperCase()}</span>
+            if (paymentMethod === 'qris') {
+                // QRIS - TETAP ADA
+                paymentContainer.innerHTML = `
+                    <div class="qris-container">
+                        <div class="qris-title">
+                            <i class="fas fa-qrcode"></i> QRIS Payment
                         </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>Order ID:</span>
-                            <span style="font-weight: bold; color: var(--primary);">${orderId}</span>
+                        <div class="qris-subtitle">
+                            Scan QR Code di bawah untuk pembayaran via QRIS
+                        </div>
+                        
+                        <div class="qris-code">
+                            <img src="foto/qris.png" alt="QR Code" style="width: 180px; height: 180px; border-radius: 5px;" onerror="this.onerror=null; this.src='https://via.placeholder.com/180x180/059669/ffffff?text=QRIS'">
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
+                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
+                        </div>
+                        
+                        <div class="qris-instruction">
+                            <p><strong>Cara Pembayaran:</strong></p>
+                            <ol class="qris-steps">
+                                <li>Buka aplikasi e-wallet atau mobile banking yang mendukung QRIS</li>
+                                <li>Pilih fitur "Scan QR" di menu utama</li>
+                                <li>Arahkan kamera ke QR Code di atas</li>
+                                <li>Periksa jumlah pembayaran: <strong>${formatRupiah(totalAmount)}</strong></li>
+                                <li>Konfirmasi pembayaran</li>
+                                <li>Tunggu notifikasi pembayaran berhasil</li>
+                            </ol>
                         </div>
                     </div>
-                    
-                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; text-align: left; font-size: 14px; color: #856404;">
-                        <p style="margin-bottom: 10px;"><i class="fas fa-info-circle"></i> Pesanan Anda akan segera diproses.</p>
-                        <p>Anda bisa melacak status pesanan di halaman <strong>Status Pesanan</strong>.</p>
+                `;
+            } else if (paymentMethod === 'gopay') {
+                // GOPAY
+                paymentContainer.innerHTML = `
+                    <div class="qris-container">
+                        <div class="qris-title">
+                            <i class="fas fa-wallet"></i> GOPAY Payment
+                        </div>
+                        <div class="qris-subtitle">
+                            Gunakan GOPAY untuk menyelesaikan pembayaran
+                        </div>
+                        
+                        <div class="qris-code">
+                            <img src="foto/gopay.png" alt="GOPAY QR" style="width: 180px; height: 180px; border-radius: 5px;" onerror="this.onerror=null; this.src='https://via.placeholder.com/180x180/00AA13/ffffff?text=GOPAY'">
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
+                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
+                        </div>
+                        
+                        <div class="qris-instruction">
+                            <p><strong>Cara Pembayaran GOPAY:</strong></p>
+                            <ol class="qris-steps">
+                                <li>Buka aplikasi GOPAY di smartphone Anda</li>
+                                <li>Pilih fitur "Scan QR" atau "Bayar"</li>
+                                <li>Arahkan kamera ke QR Code di atas</li>
+                                <li>Periksa jumlah pembayaran: <strong>${formatRupiah(totalAmount)}</strong></li>
+                                <li>Masukkan PIN atau gunakan verifikasi biometrik</li>
+                                <li>Tunggu konfirmasi pembayaran berhasil</li>
+                            </ol>
+                        </div>
                     </div>
-                </div>
+                `;
+            } else if (paymentMethod === 'ovo') {
+                // OVO
+                paymentContainer.innerHTML = `
+                    <div class="qris-container">
+                        <div class="qris-title">
+                            <i class="fas fa-mobile-alt"></i> OVO Payment
+                        </div>
+                        <div class="qris-subtitle">
+                            Gunakan OVO untuk menyelesaikan pembayaran
+                        </div>
+                        
+                        <div class="qris-code">
+                            <img src="foto/ovo.png" alt="OVO QR" style="width: 180px; height: 180px; border-radius: 5px;" onerror="this.onerror=null; this.src='https://via.placeholder.com/180x180/4B2786/ffffff?text=OVO'">
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
+                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
+                        </div>
+                        
+                        <div class="qris-instruction">
+                            <p><strong>Cara Pembayaran OVO:</strong></p>
+                            <ol class="qris-steps">
+                                <li>Buka aplikasi OVO di smartphone Anda</li>
+                                <li>Pilih fitur "Scan QR" atau "Bayar"</li>
+                                <li>Arahkan kamera ke QR Code di atas</li>
+                                <li>Periksa jumlah pembayaran: <strong>${formatRupiah(totalAmount)}</strong></li>
+                                <li>Masukkan PIN atau gunakan verifikasi biometrik</li>
+                                <li>Tunggu konfirmasi pembayaran berhasil</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
+            } else if (paymentMethod === 'dana') {
+                // DANA
+                paymentContainer.innerHTML = `
+                    <div class="qris-container">
+                        <div class="qris-title">
+                            <i class="fas fa-qrcode"></i> DANA Payment
+                        </div>
+                        <div class="qris-subtitle">
+                            Gunakan DANA untuk menyelesaikan pembayaran
+                        </div>
+                        
+                        <div class="qris-code">
+                            <img src="foto/dana.png" alt="DANA QR" style="width: 180px; height: 180px; border-radius: 5px;" onerror="this.onerror=null; this.src='https://via.placeholder.com/180x180/108EE9/ffffff?text=DANA'">
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
+                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
+                        </div>
+                        
+                        <div class="qris-instruction">
+                            <p><strong>Cara Pembayaran DANA:</strong></p>
+                            <ol class="qris-steps">
+                                <li>Buka aplikasi DANA di smartphone Anda</li>
+                                <li>Pilih fitur "Scan QR" atau "Bayar"</li>
+                                <li>Arahkan kamera ke QR Code di atas</li>
+                                <li>Periksa jumlah pembayaran: <strong>${formatRupiah(totalAmount)}</strong></li>
+                                <li>Masukkan PIN atau gunakan verifikasi biometrik</li>
+                                <li>Tunggu konfirmasi pembayaran berhasil</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
+            } else if (['bca', 'mandiri', 'bni', 'bri'].includes(paymentMethod)) {
+                // Bank Transfer - TETAP ADA
+                const bankInfo = bankAccounts[paymentMethod];
+                const bankImage = `foto/${paymentMethod}.png`;
+                
+                paymentContainer.innerHTML = `
+                    <div class="bank-transfer-container">
+                        <div class="bank-name">${bankInfo.bank} Transfer</div>
+                        <img src="${bankImage}" alt="${bankInfo.bank}" class="bank-logo-large" onerror="this.onerror=null; this.src='https://via.placeholder.com/60x60/1e3a8a/ffffff?text=${bankInfo.bank}'">
+                        <div class="account-number">${bankInfo.number}</div>
+                        <div class="account-name">a.n. ${bankInfo.name}</div>
+                        
+                        <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <div style="font-weight: 600; color: var(--secondary); margin-bottom: 5px;">Total Pembayaran:</div>
+                            <div style="font-size: 24px; color: var(--primary); font-weight: 700;">${formatRupiah(totalAmount)}</div>
+                        </div>
+                        
+                        <div class="transfer-instructions">
+                            <h4>Cara Transfer via ${bankInfo.bank}:</h4>
+                            <ol>
+                                <li>Buka aplikasi ${bankInfo.bank} Mobile Banking atau ATM</li>
+                                <li>Pilih menu "Transfer" atau "Kirim Uang"</li>
+                                <li>Masukkan nomor rekening: <strong>${bankInfo.number}</strong></li>
+                                <li>Nama penerima: <strong>${bankInfo.name}</strong></li>
+                                <li>Jumlah transfer: <strong>${formatRupiah(totalAmount)}</strong></li>
+                                <li>Konfirmasi dan selesaikan transaksi</li>
+                                <li>Simpan bukti transfer sebagai referensi</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Tambahkan order ID
+            const orderIdElement = document.createElement('div');
+            orderIdElement.style.marginTop = '15px';
+            orderIdElement.style.padding = '10px';
+            orderIdElement.style.background = '#e8f5e9';
+            orderIdElement.style.borderRadius = '5px';
+            orderIdElement.style.borderLeft = '4px solid #4caf50';
+            orderIdElement.innerHTML = `
+                <div style="font-weight: 600; color: #2e7d32; margin-bottom: 5px;">Order ID:</div>
+                <div style="font-family: monospace; color: var(--dark);">${orderId}</div>
             `;
+            paymentContainer.appendChild(orderIdElement);
         }
 
         // Tampilkan invoice
@@ -2511,7 +2640,7 @@
                             <p><strong>Invoice No:</strong> ${orderData.id}</p>
                             <p><strong>Tanggal:</strong> ${orderData.date}</p>
                             <p><strong>Waktu:</strong> ${orderData.time}</p>
-                            <p><strong>Status:</strong> <span style="color: #004085; font-weight: bold;">LUNAS</span></p>
+                            <p><strong>Status Pembayaran:</strong> LUNAS</p>
                         </div>
                         <div>
                             <h4>Informasi Pelanggan</h4>
@@ -2564,10 +2693,10 @@
                     <div style="clear: both;"></div>
                     
                     <div class="invoice-note">
-                        <p><strong>Metode Pembayaran:</strong> ${orderData.paymentMethod ? orderData.paymentMethod.toUpperCase() : 'QRIS'}</p>
-                        <p><strong>Status Pembayaran:</strong> <span style="color: #004085; font-weight: bold;">LUNAS</span></p>
+                        <p><strong>Metode Pembayaran:</strong> ${orderData.paymentMethod.toUpperCase()}</p>
+                        <p><strong>Status Pembayaran:</strong> LUNAS</p>
                         <p><strong>Catatan:</strong> ${orderData.notes || 'Tidak ada catatan'}</p>
-                        <p style="margin-top: 15px; font-weight: bold; color: var(--primary);">Terima kasih telah berbelanja di PANGS!T STORE</p>
+                        <p style="margin-top: 15px;">Terima kasih telah berbelanja di PANGS!T STORE</p>
                     </div>
                 </div>
             `;
@@ -2599,7 +2728,7 @@
                 // Generate order ID
                 const orderId = generateOrderId();
                 
-                // Buat objek pesanan - status langsung 'paid' (lunas)
+                // Buat objek pesanan - STATUS LANGSUNG LUNAS
                 const orderData = {
                     id: orderId,
                     customer: {
@@ -2615,7 +2744,7 @@
                         image: item.image || 'foto/default.jpg'
                     })),
                     paymentMethod: paymentMethod,
-                    status: 'paid', // Status langsung jadi 'lunas' (paid)
+                    status: 'lunas', // STATUS DIUBAH MENJADI LUNAS
                     date: new Date().toLocaleDateString('id-ID'),
                     time: new Date().toLocaleTimeString('id-ID', { 
                         hour: '2-digit', 
@@ -2633,7 +2762,7 @@
                 const savedOrder = saveCustomerOrder(orderData);
                 
                 if (savedOrder) {
-                    console.log('✅ Pesanan berhasil dibuat dengan status LUNAS:', savedOrder.id);
+                    console.log('✅ Pesanan berhasil dibuat:', savedOrder.id);
                     
                     // Reset cart jika checkout dari cart
                     const isFromCart = JSON.stringify(checkoutItems) === JSON.stringify(cart);
@@ -2910,7 +3039,7 @@
                 // Generate order ID
                 const orderId = generateOrderId();
                 
-                // Tampilkan instruksi pembayaran (simulasi pembayaran berhasil)
+                // Tampilkan instruksi pembayaran
                 showPaymentInstructions(selectedPayment.getAttribute('data-method'), total, orderId);
                 
                 // Update step
@@ -2938,12 +3067,12 @@
             
             // Event listener untuk tombol selesai
             document.getElementById('closeOrderModal').addEventListener('click', () => {
-                // 1. Buat dan simpan pesanan dengan status LUNAS
+                // 1. Buat dan simpan pesanan
                 const savedOrder = createOrderFromCheckout();
                 
                 if (savedOrder) {
                     // 2. Tampilkan notifikasi sukses
-                    showNotification(`✅ Pesanan ${savedOrder.id} berhasil! Status: LUNAS`);
+                    showNotification(`✅ Pesanan ${savedOrder.id} berhasil dibuat! Status: LUNAS`);
                     
                     // 3. Tampilkan invoice
                     document.getElementById('invoiceContainer').style.display = 'block';
@@ -2953,12 +3082,6 @@
                     setTimeout(() => {
                         document.getElementById('invoiceContainer').scrollIntoView({ behavior: 'smooth' });
                     }, 500);
-                    
-                    // 5. Tutup modal checkout setelah 3 detik
-                    setTimeout(() => {
-                        checkoutModal.classList.remove('active');
-                        document.getElementById('invoiceContainer').style.display = 'none';
-                    }, 5000);
                     
                 } else {
                     showNotification('❌ Gagal menyimpan pesanan. Silakan coba lagi.', 'error');
@@ -2989,7 +3112,7 @@
                 });
             });
             
-            console.log('✅ Sistem PANGS!T siap dengan status LUNAS otomatis');
+            console.log('✅ Sistem PANGS!T siap dengan metode pembayaran lengkap dan status pesanan LUNAS');
         }
 
         // Ekspor fungsi ke global scope untuk akses dari HTML
