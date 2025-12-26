@@ -1,52 +1,51 @@
-# 🥟 PANGS!T - Toko Pangsit Online
+🥟 PANGS!T - Toko Pangsit Online
+Website toko pangsit siap pakai!
 
-![PANGSIT Banner](https://img.shields.io/badge/PANGSIT-Toko%20Online-orange)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue)
-![Status](https://img.shields.io/badge/Status-Live-brightgreen)
-![License](https://img.shields.io/badge/Licensi-Bisnis-yellow)
+📦 File yang Perlu Disimpan:
+index.html - File utama website
 
-Toko online pangsit modern dengan sistem e-commerce lengkap, responsive, dan user-friendly. Dibangun dengan HTML, CSS, dan JavaScript murni tanpa framework.
+foto/ - Folder untuk foto produk
 
-## 🎯 Demo Langsung
-👉 **[Buka Toko PANGS!T](https://username.github.io/pangsit-toko-online/)**
+🚀 Cara Pakai:
+Download/salin kode HTML
 
-## 📸 Tampilan Website
+Simpan sebagai index.html
 
-| Beranda | Produk | Keranjang |
-|---------|--------|-----------|
-| ![Beranda](https://via.placeholder.com/400x250/ff6b35/ffffff?text=Beranda+PANGSIT) | ![Produk](https://via.placeholder.com/400x250/2d3047/ffffff?text=Produk+Pangsit) | ![Keranjang](https://via.placeholder.com/400x250/28a745/ffffff?text=Keranjang) |
+Buat folder foto
 
-| Checkout | Invoice | Mobile |
-|----------|---------|--------|
-| ![Checkout](https://via.placeholder.com/400x250/17a2b8/ffffff?text=Checkout) | ![Invoice](https://via.placeholder.com/400x250/6c757d/ffffff?text=Invoice) | ![Mobile](https://via.placeholder.com/400x250/ffc107/000000?text=Mobile+View) |
+Taruh gambar produk di folder foto
 
-## ✨ Fitur Utama
+Buka index.html di browser
 
-### 🛍️ **Sistem E-commerce Lengkap**
-- ✅ **6 Produk Pangsit** premium dengan gambar dan deskripsi
-- ✅ **Keranjang Belanja** interaktif (tambah, hapus, update jumlah)
-- ✅ **Checkout 3 Langkah** (informasi, pembayaran, konfirmasi)
-- ✅ **Status Pesanan** real-time dengan status otomatis **"LUNAS"**
-- ✅ **Invoice System** otomatis yang bisa dicetak
-- ✅ **LocalStorage** untuk simpan data tanpa database
+📋 Fitur:
+✅ Keranjang belanja
 
-### 💰 **Sistem Pembayaran Lengkap**
-- ✅ **QRIS** - Pembayaran via QR Code
-- ✅ **E-Wallet** - GOPAY, OVO, DANA
-- ✅ **Bank Transfer** - BCA, Mandiri, BNI, BRI
-- ✅ **Status Otomatis** - Setiap pesanan langsung **LUNAS**
-- ✅ **Instruksi Pembayaran** lengkap untuk setiap metode
+✅ Checkout mudah
 
-### 📱 **Responsive & Modern**
-- ✅ **Mobile-First Design** - Optimal di HP
-- ✅ **Responsive Layout** - Desktop, tablet, mobile
-- ✅ **Mobile Menu** - Navigation yang mudah
-- ✅ **Touch Friendly** - Tombol besar untuk mobile
-- ✅ **Fast Loading** - Tanpa framework berat
+✅ QRIS, Bank, E-Wallet
 
-### 🎨 **UI/UX Premium**
-- ✅ **Warna Professional** - Orange (#ff6b35) & Blue (#2d3047)
-- ✅ **Animasi Smooth** - Transisi dan hover effects
-- ✅ **Modal Popup** - Detail produk dan checkout
-- ✅ **Notifications** - Notifikasi real-time
-- ✅ **Form Validation** - Validasi input otomatis
+✅ Invoice bisa dicetak
+
+✅ Mobile friendly
+
+💡 Tips:
+Ganti gambar di folder foto/
+
+Edit nama produk di kode
+
+Ganti harga di kode JavaScript
+
+📞 Kontak:
+Email: sitirusmi54@gmail.com
+Telp: +62 831-9524-3139
+
+🎯 Siap Digunakan!
+Buka index.html
+
+Pilih produk
+
+Checkout
+
+Bayar
+
+Selesai!
